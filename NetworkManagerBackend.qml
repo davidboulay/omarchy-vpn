@@ -68,6 +68,13 @@ Item {
   // panel answers this by re-running the activation in a terminal, where
   // `nmcli --ask` can collect the credentials itself.
   signal authRequired(string command)
+  // Part of the contract's optional edit verb: the panel runs the command, in a
+  // floating terminal when `terminal` is set, and gets out of the way.
+  signal launchRequested(var argv, bool terminal)
+
+  // Not one of the probes `detected` waits on: an editor is a nicety, and its
+  // absence only changes which one opens.
+  property bool _connectionEditorPresent: false
 
   readonly property bool _activeNow: NetworkManager.activeNmProfile(profiles) !== null
   readonly property bool connected: _desired === -1 ? _activeNow : (_desired === 1)
@@ -125,6 +132,11 @@ Item {
   function refresh() {
     if (!_toolsPresent || listProcess.running || typesProcess.running) return
     listProcess.running = true
+  }
+
+  function editTarget(target) {
+    var spec = NetworkManager.nmEditCommand(target, root._connectionEditorPresent)
+    if (spec) root.launchRequested(spec.argv, spec.terminal)
   }
 
   function connectTo(target) {
@@ -274,6 +286,13 @@ Item {
         root._desired = -1
       }
     }
+  }
+
+  Process {
+    id: connectionEditorProbe
+    command: ["omarchy-cmd-present", "nm-connection-editor"]
+    running: true
+    onExited: function(exitCode) { root._connectionEditorPresent = exitCode === 0 }
   }
 
   Process {

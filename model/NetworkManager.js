@@ -263,7 +263,10 @@ function nmTargets(profiles, authScript) {
       kind: profile.kind,
       hasUsername: profile.hasUsername,
       connectionType: profile.connectionType || "",
-      gateway: profile.gateway || ""
+      gateway: profile.gateway || "",
+      // Part of the target contract: the panel offers an edit action on rows
+      // that carry it, and hands them to the backend's editTarget().
+      editable: profile.uuid !== ""
     }
 
     if (openconnect && String(authScript || "") !== "") {
@@ -339,4 +342,19 @@ function activeNmProfile(profiles) {
     if (profiles[i].active) return profiles[i]
   }
   return null
+}
+
+// How to edit a profile in place: the command, and whether it needs a
+// terminal. nm-connection-editor is NetworkManager's own editor and the only
+// one that covers every kind this backend lists — WireGuard peers, OpenVPN
+// certificates, the IPsec kinds' secrets — so it is used whenever it is
+// installed (it ships with network-manager-applet, which many desktops pull in
+// without running the applet). nmtui is part of NetworkManager itself, so it is
+// always there as the fallback, in a terminal because it is a TUI. Both edit
+// the stored profile, which takes effect the next time it connects.
+function nmEditCommand(target, connectionEditorPresent) {
+  var uuid = target ? String(target.uuid || "") : ""
+  if (uuid === "") return null
+  if (connectionEditorPresent) return { argv: ["nm-connection-editor", "--edit=" + uuid], terminal: false }
+  return { argv: ["nmtui", "edit", uuid], terminal: true }
 }

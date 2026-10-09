@@ -136,6 +136,15 @@ Item {
     listProcess.running = true
   }
 
+  // Part of the contract's optional edit verb; see AmneziaWg.awgEditCommand for
+  // which editor a profile gets and why a root-owned one needs a terminal.
+  signal launchRequested(var argv, bool terminal)
+
+  function editTarget(target) {
+    var spec = AmneziaWg.awgEditCommand(target)
+    if (spec) root.launchRequested(spec.argv, spec.terminal)
+  }
+
   function connectTo(target) {
     if (!_toolsPresent || _working || !target || !target.confFile) return
 
