@@ -50,9 +50,9 @@ Item {
   }
 
   // systemd-managed profiles go through systemctl, which elevates through
-  // polkit by itself; see AmneziaWg.controlCommand for why they must.
+  // polkit by itself; see AmneziaWg.awgControlCommand for why they must.
   function command(profile, verb) {
-    var spec = AmneziaWg.controlCommand(profile, verb)
+    var spec = AmneziaWg.awgControlCommand(profile, verb)
     return spec.elevate ? root.elevate(spec.argv) : spec.argv
   }
 
@@ -88,7 +88,7 @@ Item {
   readonly property var activeProfile: AmneziaWg.activeAwgProfile(profiles)
   readonly property string currentKey: activeProfile ? "profile:" + activeProfile.name : ""
 
-  readonly property var unitProfiles: AmneziaWg.parseUnitProfiles(root.setting("systemdProfiles", ""))
+  readonly property var unitProfiles: AmneziaWg.parseAwgUnitProfiles(root.setting("systemdProfiles", ""))
 
   readonly property string profilesDir: {
     var dir = String(root.setting("profilesDir", "~/.config/omarchy/vpn/awg-profiles"))

@@ -144,7 +144,7 @@ function interfaceFor(confFile) {
 // is not a valid awg-quick interface name is dropped here rather than escaped.
 // The pattern and the 15-character limit are awg-quick's own (inherited from
 // wg-quick), so nothing it would accept is lost.
-function parseUnitProfiles(raw) {
+function parseAwgUnitProfiles(raw) {
   var names = []
   var parts = String(raw || "").split(/[\s,]+/)
   for (var i = 0; i < parts.length; i++) {
@@ -155,7 +155,7 @@ function parseUnitProfiles(raw) {
   return names
 }
 
-function unitFor(name) {
+function awgUnitFor(name) {
   return "awg-quick@" + name + ".service"
 }
 
@@ -175,7 +175,7 @@ function unitFor(name) {
 // down without the widget ever having read the file.
 //
 // A profile named in `units` carries `unit`, which switches its connect and
-// disconnect over to systemctl (see controlCommand). A unit profile is never
+// disconnect over to systemctl (see awgControlCommand). A unit profile is never
 // `external`: the user named it, so it is a profile they expect to start from
 // here, up or down. Its config is usually unreadable, which `configRead`
 // records so the detail rows leave out what only the config could say.
@@ -191,7 +191,7 @@ function buildProfiles(entries, upInterfaces, units) {
     profiles.push({
       name: name,
       confFile: entries[i].path,
-      unit: managed.indexOf(name) !== -1 ? unitFor(name) : "",
+      unit: managed.indexOf(name) !== -1 ? awgUnitFor(name) : "",
       hasHooks: entries[i].hasHooks === true,
       endpoints: entries[i].endpoints || [],
       defaultRoute: entries[i].defaultRoute === true,
@@ -206,7 +206,7 @@ function buildProfiles(entries, upInterfaces, units) {
     profiles.push({
       name: managed[k],
       confFile: managed[k],
-      unit: unitFor(managed[k]),
+      unit: awgUnitFor(managed[k]),
       hasHooks: false,
       endpoints: [],
       defaultRoute: false,
@@ -247,7 +247,7 @@ function buildProfiles(entries, upInterfaces, units) {
 // "up" restarts rather than starts for that same reason: a tunnel taken down
 // behind the unit's back can only be brought back by stopping the unit first,
 // and on a unit that is really inactive a restart is just a start.
-function controlCommand(profile, verb) {
+function awgControlCommand(profile, verb) {
   if (profile && profile.unit) {
     return { argv: ["systemctl", verb === "up" ? "restart" : "stop", profile.unit], elevate: false }
   }
