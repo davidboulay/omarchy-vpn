@@ -23,6 +23,21 @@ var GLYPH_COG = String.fromCodePoint(0xF0493)
 
 // ----------------------------------------------------------------- shared
 
+// The `barIcon` setting: which mark the bar shows. "WireGuard" has no glyph —
+// no Nerd Font carries it — so it comes back empty and Panel.qml draws
+// WireGuardMark.qml in its place. Anything unrecognised falls back to the
+// default, the same as an unset value, so a typo in shell.json still leaves an
+// icon to click.
+var BAR_ICON_WIREGUARD = "WireGuard"
+
+function barIconGlyph(setting) {
+  var value = String(setting || "")
+  if (value === BAR_ICON_WIREGUARD) return ""
+  if (value === "Shield") return GLYPH_SHIELD
+  return GLYPH_VPN
+}
+
+
 // The exit address lookup answers with a bare address and nothing else. A
 // captive portal's login page, a proxy's error body, or anything else that
 // came back with it is not an answer — and this is the one number a user reads

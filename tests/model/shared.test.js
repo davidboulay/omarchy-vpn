@@ -73,3 +73,14 @@ test("parsePublicIp rejects anything that is not one", () => {
   eq(Shared.parsePublicIp(null), "")
   eq(Shared.parsePublicIp("1.2.3.4".padEnd(50, "0")), "")
 })
+
+// "WireGuard" has no glyph, so it must come back empty for Panel.qml to swap in
+// the drawn mark; anything else unknown keeps the default icon.
+test("barIconGlyph maps the setting to a glyph, empty for the drawn mark", () => {
+  eq(Shared.barIconGlyph("WireGuard"), "")
+  eq(Shared.barIconGlyph("Shield"), Shared.GLYPH_SHIELD)
+  eq(Shared.barIconGlyph("VPN"), Shared.GLYPH_VPN)
+  eq(Shared.barIconGlyph(""), Shared.GLYPH_VPN)
+  eq(Shared.barIconGlyph(undefined), Shared.GLYPH_VPN)
+  eq(Shared.barIconGlyph("wireguard"), Shared.GLYPH_VPN)
+})

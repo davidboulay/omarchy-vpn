@@ -24,7 +24,8 @@
       "favoriteCountries": "CH,NL,US",
       "hiddenBackends": "",
       "profilesDir": "~/.config/omarchy/vpn/awg-profiles",
-      "systemdProfiles": ""
+      "systemdProfiles": "",
+      "barIcon": "VPN"
     },
     "schema": [
       {
@@ -35,6 +36,18 @@
         "max": 600,
         "step": 5,
         "defaultValue": 15
+      },
+      {
+        "key": "barIcon",
+        "type": "enum",
+        "label": "Bar icon",
+        "options": [
+          "VPN",
+          "Shield",
+          "WireGuard"
+        ],
+        "defaultValue": "VPN",
+        "description": "The mark shown in the bar. WireGuard draws the WireGuard logo, for a bar whose tunnels are all WireGuard or AmneziaWG."
       },
       {
         "key": "preferredBackend",

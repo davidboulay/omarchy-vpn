@@ -476,13 +476,27 @@ Panel {
     id: button
     anchors.fill: parent
     bar: root.bar
-    text: Shared.GLYPH_VPN
+    text: Shared.barIconGlyph(root.settings ? root.settings.barIcon : "")
+    iconComponent: text === "" ? wireGuardMark : null
     dimmed: !vpn.anyConnected
     tooltipText: "VPN: " + vpn.barSummary
     onPressed: function(buttonCode) {
       if (buttonCode === Qt.RightButton) vpn.toggleActive()
       else if (buttonCode === Qt.MiddleButton) { vpn.refreshAll(true); vpn.refreshPublicIp() }
       else root.toggle()
+    }
+  }
+
+  // Drawn instead of a glyph for `barIcon: "WireGuard"`, in the colour the
+  // glyph would have had, so dimming and an active colour behave the same.
+  Component {
+    id: wireGuardMark
+    Item {
+      WireGuardMark {
+        anchors.centerIn: parent
+        iconSize: Math.round(Math.min(parent.width, parent.height) * 0.86)
+        color: button.active && button.useActiveColor ? button.activeColor : button.foreground
+      }
     }
   }
 
