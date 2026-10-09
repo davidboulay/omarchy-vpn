@@ -223,6 +223,31 @@ at least one profile to show. Selecting a profile brings it up with `awg-quick`;
 selecting another takes the first one down before bringing the new one up, so
 the widget does not leave two AmneziaWG tunnels running.
 
+### Profiles run by systemd
+
+If a tunnel lives in `/etc/amnezia/amneziawg/` and you run it as
+`awg-quick@<name>.service`, name it in the **AmneziaWG systemd profiles**
+setting (`systemdProfiles`, comma separated, e.g. `"work, home"`). Those rows
+show while the tunnel is down, even though the config there is unreadable to
+you, and the widget drives them with `systemctl restart` / `systemctl stop`
+instead of `awg-quick`, so the unit never reports a tunnel it no longer has.
+systemctl asks polkit, which lets a rule scoped to the units connect without a
+prompt:
+
+```js
+// /etc/polkit-1/rules.d/50-amneziawg-units.rules
+polkit.addRule(function(action, subject) {
+  if (action.id == "org.freedesktop.systemd1.manage-units" &&
+      /^awg-quick@[a-zA-Z0-9_=+.-]+\.service$/.test(action.lookup("unit")) &&
+      ["start", "stop", "restart"].indexOf(action.lookup("verb")) >= 0 &&
+      subject.local && subject.active && subject.isInGroup("wheel")) {
+    return polkit.Result.YES;
+  }
+});
+```
+
+Without a rule, the session's polkit agent asks for your password instead.
+
 Bringing a profile up or down needs root privileges. The widget normally opens
 a Polkit prompt through `pkexec`; with a `NOPASSWD` sudo rule for `awg-quick`,
 it uses `sudo -n` instead and does not prompt.

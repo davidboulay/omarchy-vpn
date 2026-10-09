@@ -126,9 +126,11 @@ test("buildProfiles gives an interface with no readable config a row of its own"
   eq(profiles[1], {
     name: "work",
     confFile: "work",
+    unit: "",
     hasHooks: false,
     endpoints: [],
     defaultRoute: false,
+    configRead: false,
     external: true,
     active: true
   })
@@ -145,6 +147,82 @@ test("buildProfiles keeps a tunnel reachable after its config is deleted", () =>
   const profiles = AmneziaWg.buildProfiles([], ["home"])
   eq(profiles.length, 1)
   eq(AmneziaWg.activeAwgProfile(profiles).confFile, "home")
+})
+
+// The setting ends up inside a unit name handed to systemctl, so only what
+// awg-quick itself accepts as an interface name survives.
+test("parseUnitProfiles keeps valid interface names only", () => {
+  eq(AmneziaWg.parseUnitProfiles("pc-david, work\nhome_awg"), ["pc-david", "work", "home_awg"])
+  eq(AmneziaWg.parseUnitProfiles("work work"), ["work"])
+  eq(AmneziaWg.parseUnitProfiles("a;b,../x,$(id),way-too-long-a-name,ok"), ["ok"])
+  eq(AmneziaWg.parseUnitProfiles(""), [])
+  eq(AmneziaWg.parseUnitProfiles(undefined), [])
+})
+
+// /etc/amnezia/amneziawg is not even listable by the shell's user, so a
+// systemd-managed tunnel that is down has nothing in the listing behind it.
+// Without a row from the setting it could never be started from the panel.
+test("buildProfiles lists a systemd profile while it is down", () => {
+  const profiles = AmneziaWg.buildProfiles([], [], ["pc-david"])
+  eq(profiles, [{
+    name: "pc-david",
+    confFile: "pc-david",
+    unit: "awg-quick@pc-david.service",
+    hasHooks: false,
+    endpoints: [],
+    defaultRoute: false,
+    configRead: false,
+    external: false,
+    active: false
+  }])
+})
+
+test("buildProfiles marks an up systemd profile active, not external", () => {
+  const profiles = AmneziaWg.buildProfiles([], ["pc-david"], ["pc-david"])
+  eq(profiles.length, 1)
+  eq(profiles[0].active, true)
+  eq(profiles[0].external, false)
+  eq(profiles[0].unit, "awg-quick@pc-david.service")
+})
+
+test("buildProfiles attaches the unit to a readable config of the same name", () => {
+  const profiles = AmneziaWg.buildProfiles(
+    [{ path: "/etc/amnezia/amneziawg/work.conf", hasHooks: false, endpoints: ["203.0.113.9:51820"] }],
+    [], ["work"])
+  eq(profiles.length, 1)
+  eq(profiles[0].unit, "awg-quick@work.service")
+  eq(profiles[0].configRead, true)
+  eq(profiles[0].endpoints, ["203.0.113.9:51820"])
+})
+
+// A bare `awg-quick down` under a oneshot unit leaves it "active" with no
+// interface, after which `systemctl start` does nothing at all.
+test("controlCommand drives a systemd profile through its unit", () => {
+  const profile = { name: "pc-david", confFile: "pc-david", unit: "awg-quick@pc-david.service" }
+  eq(AmneziaWg.controlCommand(profile, "up"), { argv: ["systemctl", "restart", "awg-quick@pc-david.service"], elevate: false })
+  eq(AmneziaWg.controlCommand(profile, "down"), { argv: ["systemctl", "stop", "awg-quick@pc-david.service"], elevate: false })
+})
+
+test("controlCommand keeps awg-quick, elevated, for everything else", () => {
+  const profile = { name: "home", confFile: "/p/home.conf", unit: "" }
+  eq(AmneziaWg.controlCommand(profile, "up"), { argv: ["up", "/p/home.conf"], elevate: true })
+  eq(AmneziaWg.controlCommand(profile, "down"), { argv: ["down", "/p/home.conf"], elevate: true })
+})
+
+// connectTo is handed the target, not the profile, so the unit has to travel
+// with the row or a click would fall back to a bare awg-quick.
+test("awgTargets carries the unit to connectTo", () => {
+  const targets = AmneziaWg.awgTargets(AmneziaWg.buildProfiles([], [], ["pc-david"]))
+  eq(targets[0].unit, "awg-quick@pc-david.service")
+  eq(targets[0].detail, "AmneziaWG profile · systemd unit")
+  eq(AmneziaWg.controlCommand(targets[0], "up").argv[0], "systemctl")
+})
+
+test("awgDetails names the unit and skips config rows it could not read", () => {
+  const rows = AmneziaWg.awgDetails(
+    [{ name: "pc-david", confFile: "pc-david", unit: "awg-quick@pc-david.service", configRead: false, active: true }], {})
+  eq(rows.map(row => row.label), ["Profile", "Interface", "Managed by"])
+  eq(rows[2].value, "awg-quick@pc-david.service")
 })
 
 test("parseSysfsStats reads one line per interface", () => {

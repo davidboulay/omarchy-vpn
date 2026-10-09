@@ -49,6 +49,13 @@ Item {
     return prefix.concat(["awg-quick"]).concat(args)
   }
 
+  // systemd-managed profiles go through systemctl, which elevates through
+  // polkit by itself; see AmneziaWg.controlCommand for why they must.
+  function command(profile, verb) {
+    var spec = AmneziaWg.controlCommand(profile, verb)
+    return spec.elevate ? root.elevate(spec.argv) : spec.argv
+  }
+
   // -1 follows reality, 0/1 overrides it while a command is in flight, so the
   // switch flips the instant it is clicked instead of waiting a poll cycle.
   property int _desired: -1
@@ -80,6 +87,8 @@ Item {
   readonly property string setupHint: _toolsPresent && profiles.length === 0 ? emptyText : ""
   readonly property var activeProfile: AmneziaWg.activeAwgProfile(profiles)
   readonly property string currentKey: activeProfile ? "profile:" + activeProfile.name : ""
+
+  readonly property var unitProfiles: AmneziaWg.parseUnitProfiles(root.setting("systemdProfiles", ""))
 
   readonly property string profilesDir: {
     var dir = String(root.setting("profilesDir", "~/.config/omarchy/vpn/awg-profiles"))
@@ -149,10 +158,10 @@ Item {
     var active = AmneziaWg.activeAwgProfile(profiles)
     if (active && active.confFile !== target.confFile) {
       _stage = "handover"
-      connectProcess.command = root.elevate(["down", active.confFile])
+      connectProcess.command = root.command(active, "down")
     } else {
       _stage = "final"
-      connectProcess.command = root.elevate(["up", target.confFile])
+      connectProcess.command = root.command(target, "up")
     }
     connectProcess.running = true
   }
@@ -167,7 +176,7 @@ Item {
     _stage = "final"
     lastError = ""
     actionStatus = "Disconnecting…"
-    connectProcess.command = root.elevate(["down", active.confFile])
+    connectProcess.command = root.command(active, "down")
     connectProcess.running = true
   }
 
@@ -190,7 +199,7 @@ Item {
   // with no config behind it still gets a row, so it can be taken down. See
   // AmneziaWg.buildProfiles for why that case is not theoretical.
   function applyProfiles(entries) {
-    var list = AmneziaWg.buildProfiles(entries, root.upInterfaces)
+    var list = AmneziaWg.buildProfiles(entries, root.upInterfaces, root.unitProfiles)
     root.profiles = list
     if (_desired !== -1 && (AmneziaWg.activeAwgProfile(list) !== null) === (_desired === 1)) _desired = -1
   }
@@ -376,7 +385,7 @@ Item {
         return
       }
       root._stage = "final"
-      connectProcess.command = root.elevate(["up", target.confFile])
+      connectProcess.command = root.command(target, "up")
       connectProcess.running = true
     }
   }

@@ -23,7 +23,8 @@
       "preferredBackend": "Auto",
       "favoriteCountries": "CH,NL,US",
       "hiddenBackends": "",
-      "profilesDir": "~/.config/omarchy/vpn/awg-profiles"
+      "profilesDir": "~/.config/omarchy/vpn/awg-profiles",
+      "systemdProfiles": ""
     },
     "schema": [
       {
@@ -64,6 +65,13 @@
         "label": "AmneziaWG profile directory",
         "defaultValue": "~/.config/omarchy/vpn/awg-profiles",
         "description": "Where the AmneziaWG chip looks for *.conf profiles. Created with owner-only access if it does not exist."
+      },
+      {
+        "key": "systemdProfiles",
+        "type": "string",
+        "label": "AmneziaWG systemd profiles (comma separated)",
+        "defaultValue": "",
+        "description": "Interface names whose tunnel runs as amneziawg-tools' awg-quick@<name>.service, such as configs in /etc/amnezia/amneziawg. Listed while down, and connected with systemctl so a polkit rule for those units connects without a prompt."
       },
       {
         "key": "hiddenBackends",

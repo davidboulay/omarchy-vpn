@@ -484,6 +484,18 @@ from its interface name, which is all `awg-quick down` needs. The same row keeps
 a tunnel reachable when its config is deleted or renamed mid-session — a listing
 that cannot see a profile is stale, not proof the tunnel ended.
 
+**A systemd-managed tunnel is only ever touched through its unit.**
+`awg-quick@.service` is a oneshot with `RemainAfterExit`, so the unit reports
+active for as long as nobody stops it — including after a bare `awg-quick down`
+removed the interface, at which point `systemctl start` silently does nothing
+because the unit believes it is running. Profiles named in `systemdProfiles`
+therefore connect with `systemctl restart` (a plain start on an inactive unit,
+and the only way back from that stale state) and disconnect with
+`systemctl stop`. The setting is also the only source for their names: the
+config directory is not even listable, and `systemctl list-units` forgets an
+instance soon after it stops. `model/AmneziaWg.js` validates each name against
+awg-quick's interface pattern before it becomes part of a unit name.
+
 **Nerd Font glyphs** are built with `String.fromCodePoint` rather than pasted as
 literal characters, because editing tools routinely mangle multi-byte sequences
 in QML.
