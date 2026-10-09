@@ -343,14 +343,17 @@ test("awgEditCommand opens a user-owned profile in the user's editor", () => {
 
 // A tunnel started with `sudo awg-quick up pc-david` has a root-only config
 // that was never read; the path is awg-quick's own, from the interface name.
-test("awgEditCommand sudoedits a root-owned config it could not read", () => {
+test("awgEditCommand sends a root-owned config it could not read through the helper", () => {
   const target = AmneziaWg.awgTargets(AmneziaWg.buildProfiles([], ["pc-david"]))[0]
-  eq(AmneziaWg.awgEditCommand(target, "nvim"), { argv: ["env", "SUDO_EDITOR=nvim", "sudoedit", "/etc/amnezia/amneziawg/pc-david.conf"], terminal: true })
+  eq(AmneziaWg.awgEditCommand(target, "sublime_text", "/p/bin/omarchy-vpn-root-edit"),
+    { argv: ["/p/bin/omarchy-vpn-root-edit", "/etc/amnezia/amneziawg/pc-david.conf", "subl", "--wait"], terminal: false })
+  eq(AmneziaWg.awgEditCommand(target, "nvim", "/p/bin/omarchy-vpn-root-edit"),
+    { argv: ["/p/bin/omarchy-vpn-root-edit", "/etc/amnezia/amneziawg/pc-david.conf", "nvim"], terminal: true })
 })
 
-test("awgEditCommand sudoedits a readable config under awg-quick's directory", () => {
+test("awgEditCommand sends a readable config under awg-quick's directory through the helper", () => {
   const target = AmneziaWg.awgTargets(AmneziaWg.buildProfiles([{ path: "/etc/amnezia/amneziawg/work.conf" }], []))[0]
-  eq(AmneziaWg.awgEditCommand(target, "nvim").argv.slice(2), ["sudoedit", "/etc/amnezia/amneziawg/work.conf"])
+  eq(AmneziaWg.awgEditCommand(target, "nvim", "h").argv.slice(0, 2), ["h", "/etc/amnezia/amneziawg/work.conf"])
 })
 
 test("awgEditCommand keeps a blocked profile editable, so its hooks can come out", () => {
@@ -365,13 +368,13 @@ test("awgEditCommand refuses a name that is not an interface name", () => {
   eq(AmneziaWg.awgEditCommand(null), null)
 })
 
-// sudoedit writes the copy back only when the editor exits; Omarchy starts GUI
+// The copy is written back only when the editor exits; Omarchy starts GUI
 // editors detached, so an unwaited Sublime made every edit "unchanged".
-test("awgSudoEditor makes the default editor block until the file is closed", () => {
-  eq(AmneziaWg.awgSudoEditor("sublime_text\n"), "subl --wait")
-  eq(AmneziaWg.awgSudoEditor("/usr/bin/code"), "code --wait")
-  eq(AmneziaWg.awgSudoEditor("zeditor"), "zeditor --wait")
-  eq(AmneziaWg.awgSudoEditor("nano"), "nano")
-  eq(AmneziaWg.awgSudoEditor("gnome-text-editor"), "nvim")
-  eq(AmneziaWg.awgSudoEditor(""), "nvim")
+test("awgBlockingEditor makes the default editor block until the file is closed", () => {
+  eq(AmneziaWg.awgBlockingEditor("sublime_text\n"), { argv: ["subl", "--wait"], terminal: false })
+  eq(AmneziaWg.awgBlockingEditor("/usr/bin/code"), { argv: ["code", "--wait"], terminal: false })
+  eq(AmneziaWg.awgBlockingEditor("zeditor"), { argv: ["zeditor", "--wait"], terminal: false })
+  eq(AmneziaWg.awgBlockingEditor("nano"), { argv: ["nano"], terminal: true })
+  eq(AmneziaWg.awgBlockingEditor("gnome-text-editor"), { argv: ["nvim"], terminal: true })
+  eq(AmneziaWg.awgBlockingEditor(""), { argv: ["nvim"], terminal: true })
 })
