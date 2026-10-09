@@ -494,7 +494,7 @@ Panel {
     Item {
       WireGuardMark {
         anchors.centerIn: parent
-        iconSize: Math.round(Math.min(parent.width, parent.height) * 0.86)
+        iconSize: button.fontSize
         color: button.active && button.useActiveColor ? button.activeColor : button.foreground
       }
     }
