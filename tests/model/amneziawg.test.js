@@ -151,12 +151,12 @@ test("buildProfiles keeps a tunnel reachable after its config is deleted", () =>
 
 // The setting ends up inside a unit name handed to systemctl, so only what
 // awg-quick itself accepts as an interface name survives.
-test("parseUnitProfiles keeps valid interface names only", () => {
-  eq(AmneziaWg.parseUnitProfiles("pc-david, work\nhome_awg"), ["pc-david", "work", "home_awg"])
-  eq(AmneziaWg.parseUnitProfiles("work work"), ["work"])
-  eq(AmneziaWg.parseUnitProfiles("a;b,../x,$(id),way-too-long-a-name,ok"), ["ok"])
-  eq(AmneziaWg.parseUnitProfiles(""), [])
-  eq(AmneziaWg.parseUnitProfiles(undefined), [])
+test("parseAwgUnitProfiles keeps valid interface names only", () => {
+  eq(AmneziaWg.parseAwgUnitProfiles("pc-david, work\nhome_awg"), ["pc-david", "work", "home_awg"])
+  eq(AmneziaWg.parseAwgUnitProfiles("work work"), ["work"])
+  eq(AmneziaWg.parseAwgUnitProfiles("a;b,../x,$(id),way-too-long-a-name,ok"), ["ok"])
+  eq(AmneziaWg.parseAwgUnitProfiles(""), [])
+  eq(AmneziaWg.parseAwgUnitProfiles(undefined), [])
 })
 
 // /etc/amnezia/amneziawg is not even listable by the shell's user, so a
@@ -197,16 +197,16 @@ test("buildProfiles attaches the unit to a readable config of the same name", ()
 
 // A bare `awg-quick down` under a oneshot unit leaves it "active" with no
 // interface, after which `systemctl start` does nothing at all.
-test("controlCommand drives a systemd profile through its unit", () => {
+test("awgControlCommand drives a systemd profile through its unit", () => {
   const profile = { name: "pc-david", confFile: "pc-david", unit: "awg-quick@pc-david.service" }
-  eq(AmneziaWg.controlCommand(profile, "up"), { argv: ["systemctl", "restart", "awg-quick@pc-david.service"], elevate: false })
-  eq(AmneziaWg.controlCommand(profile, "down"), { argv: ["systemctl", "stop", "awg-quick@pc-david.service"], elevate: false })
+  eq(AmneziaWg.awgControlCommand(profile, "up"), { argv: ["systemctl", "restart", "awg-quick@pc-david.service"], elevate: false })
+  eq(AmneziaWg.awgControlCommand(profile, "down"), { argv: ["systemctl", "stop", "awg-quick@pc-david.service"], elevate: false })
 })
 
-test("controlCommand keeps awg-quick, elevated, for everything else", () => {
+test("awgControlCommand keeps awg-quick, elevated, for everything else", () => {
   const profile = { name: "home", confFile: "/p/home.conf", unit: "" }
-  eq(AmneziaWg.controlCommand(profile, "up"), { argv: ["up", "/p/home.conf"], elevate: true })
-  eq(AmneziaWg.controlCommand(profile, "down"), { argv: ["down", "/p/home.conf"], elevate: true })
+  eq(AmneziaWg.awgControlCommand(profile, "up"), { argv: ["up", "/p/home.conf"], elevate: true })
+  eq(AmneziaWg.awgControlCommand(profile, "down"), { argv: ["down", "/p/home.conf"], elevate: true })
 })
 
 // connectTo is handed the target, not the profile, so the unit has to travel
@@ -215,7 +215,7 @@ test("awgTargets carries the unit to connectTo", () => {
   const targets = AmneziaWg.awgTargets(AmneziaWg.buildProfiles([], [], ["pc-david"]))
   eq(targets[0].unit, "awg-quick@pc-david.service")
   eq(targets[0].detail, "AmneziaWG profile · systemd unit")
-  eq(AmneziaWg.controlCommand(targets[0], "up").argv[0], "systemctl")
+  eq(AmneziaWg.awgControlCommand(targets[0], "up").argv[0], "systemctl")
 })
 
 test("awgDetails names the unit and skips config rows it could not read", () => {
