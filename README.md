@@ -84,9 +84,12 @@ refreshes, `Esc` closes.
 **Editing a profile.** NetworkManager and AmneziaWG rows carry a pencil. A
 NetworkManager profile opens in `nm-connection-editor` (from
 `network-manager-applet`), or `nmtui` in a terminal without it. An AmneziaWG
-profile in your own directory opens in your editor; one under
-`/etc/amnezia/amneziawg/` opens with `sudoedit` in a terminal, since the file
-is root's. A tunnel that is up keeps its old settings until it reconnects.
+profile in your own directory opens in your editor. One under
+`/etc/amnezia/amneziawg/` is root's, so it is read through a polkit prompt,
+edited as a private copy in `$XDG_RUNTIME_DIR` (RAM, never `/var/tmp`) in your
+default editor — Sublime Text, VS Code and Zed are opened with `--wait`, a
+terminal editor in a terminal — and written back with a second prompt, only if
+you changed it. A tunnel that is up keeps its old settings until it reconnects.
 `nm-connection-editor` tiles unless told otherwise; in
 `~/.config/hypr/hyprland.lua`:
 

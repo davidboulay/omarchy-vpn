@@ -134,6 +134,9 @@ Item {
   // Read at edit time rather than once, so changing the default editor in
   // Omarchy's menu takes effect without a shell restart.
   property var _editTarget: null
+  // Resolved here because only the backend knows where the plugin is installed.
+  readonly property string rootEditHelper:
+    Qt.resolvedUrl("bin/omarchy-vpn-root-edit").toString().replace(/^file:\/\//, "")
 
   function editTarget(target) {
     if (!target || editorProbe.running) return
@@ -147,7 +150,7 @@ Item {
     command: ["bash", "-c", "cat \"$HOME/.local/state/omarchy/defaults/editor\" 2>/dev/null; true"]
     stdout: StdioCollector { id: editorStdout; waitForEnd: true }
     onExited: function(exitCode) {
-      var spec = AmneziaWg.awgEditCommand(root._editTarget, String(editorStdout.text || ""))
+      var spec = AmneziaWg.awgEditCommand(root._editTarget, String(editorStdout.text || ""), root.rootEditHelper)
       root._editTarget = null
       if (spec) root.launchRequested(spec.argv, spec.terminal)
     }

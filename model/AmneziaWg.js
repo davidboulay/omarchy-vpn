@@ -318,26 +318,27 @@ var AWG_SYSTEM_PROFILE_DIR = "/etc/amnezia/amneziawg"
 // the user's editor (omarchy-launch-editor picks it, and puts a TUI editor in a
 // terminal itself). Everything else — a systemd profile, a tunnel started
 // outside the widget, anything under awg-quick's own directory — lives in a
-// root-owned file, and sudoedit is the one way to edit that without running
-// the editor as root; it needs a password, so a terminal. A tunnel that is up
+// root-owned file, which goes through bin/omarchy-vpn-root-edit so the editor
+// never runs as root. A tunnel that is up
 // keeps its old settings until it reconnects, as with awg-quick itself.
-// The editor sudoedit runs, from Omarchy's default editor setting. sudoedit
-// edits a temporary copy and writes it back only once the editor exits, so the
-// editor has to block until the file is closed. Omarchy launches a GUI editor
-// detached (omarchy-launch-editor runs it under setsid), which returns at once:
-// sudoedit then reports "unchanged" and deletes the copy before the window has
-// even drawn. A terminal editor blocks by nature; the GUI editors that can be
-// told to wait are told to; anything else gets nvim, Omarchy's own fallback.
-function awgSudoEditor(defaultEditor) {
+// An editor that blocks until the file is closed, from Omarchy's default
+// editor setting, and whether it needs a terminal. A root-owned profile is
+// edited as a copy that is written back only once the editor exits, and
+// Omarchy launches GUI editors detached (omarchy-launch-editor runs them under
+// setsid), which return at once: the copy would be judged unchanged before the
+// window had drawn. So the GUI editors that can be told to wait are told to,
+// a terminal editor blocks by nature but needs a terminal, and anything else
+// gets nvim, Omarchy's own fallback.
+function awgBlockingEditor(defaultEditor) {
   var name = String(defaultEditor || "").trim().split("/").pop()
-  if (["nvim", "vim", "nano", "micro", "hx", "helix"].indexOf(name) !== -1) return name
-  if (name === "sublime_text" || name === "subl") return "subl --wait"
-  if (name === "code") return "code --wait"
-  if (name === "zeditor" || name === "zed") return "zeditor --wait"
-  return "nvim"
+  if (["nvim", "vim", "nano", "micro", "hx", "helix"].indexOf(name) !== -1) return { argv: [name], terminal: true }
+  if (name === "sublime_text" || name === "subl") return { argv: ["subl", "--wait"], terminal: false }
+  if (name === "code") return { argv: ["code", "--wait"], terminal: false }
+  if (name === "zeditor" || name === "zed") return { argv: ["zeditor", "--wait"], terminal: false }
+  return { argv: ["nvim"], terminal: true }
 }
 
-function awgEditCommand(target, defaultEditor) {
+function awgEditCommand(target, defaultEditor, rootEditHelper) {
   if (!target) return null
   var path = String(target.confFile || "")
   var userFile = target.configRead === true && path.indexOf("/") === 0
@@ -348,5 +349,8 @@ function awgEditCommand(target, defaultEditor) {
     if (!/^[a-zA-Z0-9_=+.-]{1,15}$/.test(name)) return null
     path = AWG_SYSTEM_PROFILE_DIR + "/" + name + ".conf"
   }
-  return { argv: ["env", "SUDO_EDITOR=" + awgSudoEditor(defaultEditor), "sudoedit", path], terminal: true }
+  // Root's file: bin/omarchy-vpn-root-edit reads and writes it through polkit
+  // and edits a private copy, so a GUI editor needs no terminal at all.
+  var editor = awgBlockingEditor(defaultEditor)
+  return { argv: [String(rootEditHelper || "omarchy-vpn-root-edit"), path].concat(editor.argv), terminal: editor.terminal }
 }
