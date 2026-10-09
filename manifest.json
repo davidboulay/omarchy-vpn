@@ -47,7 +47,7 @@
           "WireGuard"
         ],
         "defaultValue": "VPN",
-        "description": "The mark shown in the bar. WireGuard draws the WireGuard logo, for a bar whose tunnels are all WireGuard or AmneziaWG."
+        "description": "The mark shown in the bar. WireGuard draws the WireGuard dragon, for a bar whose tunnels are all WireGuard or AmneziaWG."
       },
       {
         "key": "preferredBackend",
