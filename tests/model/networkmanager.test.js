@@ -339,3 +339,10 @@ test("nmSummary tells no profiles from none connected", () => {
   eq(NetworkManager.nmSummary([{ name: "Work", active: false }]), "Not connected")
   eq(NetworkManager.nmSummary([{ name: "Work", active: true }]), "Work")
 })
+
+test("nmEditCommand prefers nm-connection-editor and falls back to nmtui", () => {
+  const target = { uuid: "504905a0-29fb-45ea-a83b-7b18b465aa1e", editable: true }
+  eq(NetworkManager.nmEditCommand(target, true), { argv: ["nm-connection-editor", "--edit=504905a0-29fb-45ea-a83b-7b18b465aa1e"], terminal: false })
+  eq(NetworkManager.nmEditCommand(target, false), { argv: ["nmtui", "edit", "504905a0-29fb-45ea-a83b-7b18b465aa1e"], terminal: true })
+  eq(NetworkManager.nmEditCommand({ uuid: "" }, true), null)
+})

@@ -258,6 +258,9 @@ function awgTargets(profiles) {
       active: profile.active === true,
       external: profile.external === true,
       hasHooks: profile.hasHooks === true,
+      configRead: profile.configRead !== false && profile.external !== true,
+      // Hooks included: editing a blocked profile is how its hooks come out.
+      editable: true,
       // Part of the target contract: the panel draws a blocked row dimmed, so a
       // profile that cannot be connected does not look like one that can.
       blocked: profile.hasHooks === true
@@ -306,4 +309,28 @@ function activeAwgProfile(profiles) {
     if (profiles[i].active) return profiles[i]
   }
   return null
+}
+
+var AWG_SYSTEM_PROFILE_DIR = "/etc/amnezia/amneziawg"
+
+// How to edit a profile's config: the command, and whether it needs a
+// terminal. A config the listing read from the user's own directory opens in
+// the user's editor (omarchy-launch-editor picks it, and puts a TUI editor in a
+// terminal itself). Everything else — a systemd profile, a tunnel started
+// outside the widget, anything under awg-quick's own directory — lives in a
+// root-owned file, and sudoedit is the one way to edit that without running
+// the editor as root; it needs a password, so a terminal. A tunnel that is up
+// keeps its old settings until it reconnects, as with awg-quick itself.
+function awgEditCommand(target) {
+  if (!target) return null
+  var path = String(target.confFile || "")
+  var userFile = target.configRead === true && path.indexOf("/") === 0
+    && path.indexOf(AWG_SYSTEM_PROFILE_DIR + "/") !== 0
+  if (userFile) return { argv: ["omarchy-launch-editor", path], terminal: false }
+  if (path.indexOf("/") !== 0) {
+    var name = String(target.label || path)
+    if (!/^[a-zA-Z0-9_=+.-]{1,15}$/.test(name)) return null
+    path = AWG_SYSTEM_PROFILE_DIR + "/" + name + ".conf"
+  }
+  return { argv: ["sudoedit", path], terminal: true }
 }

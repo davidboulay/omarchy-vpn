@@ -320,6 +320,17 @@ Panel {
     ipCopiedTimer.restart()
   }
 
+  // The optional edit verb: rows that carry `editable` get a pencil and the
+  // "e" key, and the backend decides what editing means for its tool.
+  function canEdit(row) {
+    return !providersOpen && backend !== null && row !== null && row !== undefined
+      && row.editable === true && typeof backend.editTarget === "function"
+  }
+
+  function editRow(row) {
+    if (canEdit(row)) backend.editTarget(row)
+  }
+
   function activateRow(row) {
     if (!row) return
     if (providersOpen) {
@@ -402,6 +413,17 @@ Panel {
   Connections {
     target: root.backend
     ignoreUnknownSignals: true
+    function onLaunchRequested(argv, terminal) {
+      if (!argv || argv.length === 0) return
+      if (terminal) {
+        if (!root.bar) return
+        var line = argv.map(function(arg) { return Util.shellQuote(String(arg)) }).join(" ")
+        root.bar.run("omarchy-launch-floating-terminal-with-presentation " + Util.shellQuote(line))
+      } else {
+        Quickshell.execDetached(argv)
+      }
+      root.close()
+    }
     function onAuthRequired(command) {
       if (!root.bar) return
       root.bar.run("omarchy-launch-floating-terminal-with-presentation " + Util.shellQuote(command))
@@ -517,6 +539,9 @@ Panel {
         else if (t === "d" || t === "D") vpn.disconnectActive()
         else if (t === "r" || t === "R") { vpn.refreshAll(true); vpn.refreshPublicIp() }
         else if (t === "s" || t === "S") { if (root.switcherVisible) root.stepBackend(1) }
+        else if (t === "e" || t === "E") {
+          if (root.cursorActive && root.focusSection === "rows") root.editRow(root.rows[root.rowIndex])
+        }
       }
 
       Flickable {
@@ -927,6 +952,18 @@ Panel {
           font.pixelSize: Style.font.caption
           elide: Text.ElideRight
         }
+      }
+
+      // Editing opens another window, so it is a button of its own rather than
+      // something the row click could be mistaken for.
+      PanelActionButton {
+        visible: root.canEdit(targetRow.row)
+        iconText: Shared.GLYPH_PENCIL
+        tooltipText: "Edit profile (e)"
+        foreground: root.foreground
+        fontFamily: root.fontFamily
+        Layout.alignment: Qt.AlignVCenter
+        onClicked: root.editRow(targetRow.row)
       }
 
       Text {

@@ -67,6 +67,14 @@ duck-types, so a backend that omits something simply renders as blank.
 `toggleConnection()`, and `setToggle(key, value)` for a backend that offers
 `toggles`.
 
+A backend whose profiles can be edited adds `editTarget(target)` and a
+`launchRequested(argv, terminal)` signal, and marks those targets
+`editable: true`. The panel draws a pencil on such rows and binds `e` to it;
+`editTarget` decides what editing means for the tool and emits the command,
+which the panel runs — in a floating terminal when `terminal` is set, because
+the editor needs a password or is a TUI — before closing. NetworkManager opens
+`nm-connection-editor` (or `nmtui`), AmneziaWG the `.conf` itself.
+
 `detect(force)` probes and nothing else — it must not fall through to a
 `refresh()`, because a hidden backend is given `detect()` alone and would
 otherwise keep polling a tool the user switched off. `refresh()` guards itself,

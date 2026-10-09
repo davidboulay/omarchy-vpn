@@ -256,3 +256,33 @@ test("activeAwgProfile finds the connected profile or null", () => {
   eq(AmneziaWg.activeAwgProfile([{ name: "a", active: false }, { name: "b", active: true }]).name, "b")
   eq(AmneziaWg.activeAwgProfile([{ name: "a", active: false }]), null)
 })
+
+test("awgEditCommand opens a user-owned profile in the user's editor", () => {
+  const target = AmneziaWg.awgTargets(AmneziaWg.buildProfiles([{ path: "/home/u/.config/omarchy/vpn/awg-profiles/home.conf" }], []))[0]
+  eq(target.editable, true)
+  eq(AmneziaWg.awgEditCommand(target), { argv: ["omarchy-launch-editor", "/home/u/.config/omarchy/vpn/awg-profiles/home.conf"], terminal: false })
+})
+
+// A tunnel started with `sudo awg-quick up pc-david` has a root-only config
+// that was never read; the path is awg-quick's own, from the interface name.
+test("awgEditCommand sudoedits a root-owned config it could not read", () => {
+  const target = AmneziaWg.awgTargets(AmneziaWg.buildProfiles([], ["pc-david"]))[0]
+  eq(AmneziaWg.awgEditCommand(target), { argv: ["sudoedit", "/etc/amnezia/amneziawg/pc-david.conf"], terminal: true })
+})
+
+test("awgEditCommand sudoedits a readable config under awg-quick's directory", () => {
+  const target = AmneziaWg.awgTargets(AmneziaWg.buildProfiles([{ path: "/etc/amnezia/amneziawg/work.conf" }], []))[0]
+  eq(AmneziaWg.awgEditCommand(target), { argv: ["sudoedit", "/etc/amnezia/amneziawg/work.conf"], terminal: true })
+})
+
+test("awgEditCommand keeps a blocked profile editable, so its hooks can come out", () => {
+  const target = AmneziaWg.awgTargets(AmneziaWg.buildProfiles([{ path: "/p/evil.conf", hasHooks: true }], []))[0]
+  eq(target.blocked, true)
+  eq(target.editable, true)
+  eq(AmneziaWg.awgEditCommand(target).argv[0], "omarchy-launch-editor")
+})
+
+test("awgEditCommand refuses a name that is not an interface name", () => {
+  eq(AmneziaWg.awgEditCommand({ label: "../../shadow", confFile: "../../shadow" }), null)
+  eq(AmneziaWg.awgEditCommand(null), null)
+})

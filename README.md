@@ -78,7 +78,21 @@ the chips, the name row, the settings switches if they are open, then the list â
 `Enter` connects, flips a switch, or opens and closes the settings drawer,
 depending on what the cursor is on. `h`/`l` move along the chip row and between
 the gear and the master switch in the header, `s` cycles tools, `/` searches
-countries, `d` disconnects, `r` refreshes, `Esc` closes.
+countries, `e` edits the profile under the cursor, `d` disconnects, `r`
+refreshes, `Esc` closes.
+
+**Editing a profile.** NetworkManager and AmneziaWG rows carry a pencil. A
+NetworkManager profile opens in `nm-connection-editor` (from
+`network-manager-applet`), or `nmtui` in a terminal without it. An AmneziaWG
+profile in your own directory opens in your editor; one under
+`/etc/amnezia/amneziawg/` opens with `sudoedit` in a terminal, since the file
+is root's. A tunnel that is up keeps its old settings until it reconnects.
+`nm-connection-editor` tiles unless told otherwise; in
+`~/.config/hypr/hyprland.lua`:
+
+```lua
+o.window("^(nm-connection-editor)$", { float = true, center = true })
+```
 
 The public IP is fetched from `https://checkip.amazonaws.com` â€” never on a timer, only
 when the connection changes, when the panel first opens, or when you ask.
