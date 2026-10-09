@@ -345,12 +345,12 @@ test("awgEditCommand opens a user-owned profile in the user's editor", () => {
 // that was never read; the path is awg-quick's own, from the interface name.
 test("awgEditCommand sudoedits a root-owned config it could not read", () => {
   const target = AmneziaWg.awgTargets(AmneziaWg.buildProfiles([], ["pc-david"]))[0]
-  eq(AmneziaWg.awgEditCommand(target), { argv: ["sudoedit", "/etc/amnezia/amneziawg/pc-david.conf"], terminal: true })
+  eq(AmneziaWg.awgEditCommand(target, "nvim"), { argv: ["env", "SUDO_EDITOR=nvim", "sudoedit", "/etc/amnezia/amneziawg/pc-david.conf"], terminal: true })
 })
 
 test("awgEditCommand sudoedits a readable config under awg-quick's directory", () => {
   const target = AmneziaWg.awgTargets(AmneziaWg.buildProfiles([{ path: "/etc/amnezia/amneziawg/work.conf" }], []))[0]
-  eq(AmneziaWg.awgEditCommand(target), { argv: ["sudoedit", "/etc/amnezia/amneziawg/work.conf"], terminal: true })
+  eq(AmneziaWg.awgEditCommand(target, "nvim").argv.slice(2), ["sudoedit", "/etc/amnezia/amneziawg/work.conf"])
 })
 
 test("awgEditCommand keeps a blocked profile editable, so its hooks can come out", () => {
@@ -363,4 +363,15 @@ test("awgEditCommand keeps a blocked profile editable, so its hooks can come out
 test("awgEditCommand refuses a name that is not an interface name", () => {
   eq(AmneziaWg.awgEditCommand({ label: "../../shadow", confFile: "../../shadow" }), null)
   eq(AmneziaWg.awgEditCommand(null), null)
+})
+
+// sudoedit writes the copy back only when the editor exits; Omarchy starts GUI
+// editors detached, so an unwaited Sublime made every edit "unchanged".
+test("awgSudoEditor makes the default editor block until the file is closed", () => {
+  eq(AmneziaWg.awgSudoEditor("sublime_text\n"), "subl --wait")
+  eq(AmneziaWg.awgSudoEditor("/usr/bin/code"), "code --wait")
+  eq(AmneziaWg.awgSudoEditor("zeditor"), "zeditor --wait")
+  eq(AmneziaWg.awgSudoEditor("nano"), "nano")
+  eq(AmneziaWg.awgSudoEditor("gnome-text-editor"), "nvim")
+  eq(AmneziaWg.awgSudoEditor(""), "nvim")
 })

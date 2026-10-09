@@ -140,9 +140,26 @@ Item {
   // which editor a profile gets and why a root-owned one needs a terminal.
   signal launchRequested(var argv, bool terminal)
 
+  // Read at edit time rather than once, so changing the default editor in
+  // Omarchy's menu takes effect without a shell restart.
+  property var _editTarget: null
+
   function editTarget(target) {
-    var spec = AmneziaWg.awgEditCommand(target)
-    if (spec) root.launchRequested(spec.argv, spec.terminal)
+    if (!target || editorProbe.running) return
+    root._editTarget = target
+    editorProbe.running = true
+  }
+
+  Process {
+    id: editorProbe
+    running: false
+    command: ["bash", "-c", "cat \"$HOME/.local/state/omarchy/defaults/editor\" 2>/dev/null; true"]
+    stdout: StdioCollector { id: editorStdout; waitForEnd: true }
+    onExited: function(exitCode) {
+      var spec = AmneziaWg.awgEditCommand(root._editTarget, String(editorStdout.text || ""))
+      root._editTarget = null
+      if (spec) root.launchRequested(spec.argv, spec.terminal)
+    }
   }
 
   function connectTo(target) {

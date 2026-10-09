@@ -399,7 +399,23 @@ var AWG_SYSTEM_PROFILE_DIR = "/etc/amnezia/amneziawg"
 // root-owned file, and sudoedit is the one way to edit that without running
 // the editor as root; it needs a password, so a terminal. A tunnel that is up
 // keeps its old settings until it reconnects, as with awg-quick itself.
-function awgEditCommand(target) {
+// The editor sudoedit runs, from Omarchy's default editor setting. sudoedit
+// edits a temporary copy and writes it back only once the editor exits, so the
+// editor has to block until the file is closed. Omarchy launches a GUI editor
+// detached (omarchy-launch-editor runs it under setsid), which returns at once:
+// sudoedit then reports "unchanged" and deletes the copy before the window has
+// even drawn. A terminal editor blocks by nature; the GUI editors that can be
+// told to wait are told to; anything else gets nvim, Omarchy's own fallback.
+function awgSudoEditor(defaultEditor) {
+  var name = String(defaultEditor || "").trim().split("/").pop()
+  if (["nvim", "vim", "nano", "micro", "hx", "helix"].indexOf(name) !== -1) return name
+  if (name === "sublime_text" || name === "subl") return "subl --wait"
+  if (name === "code") return "code --wait"
+  if (name === "zeditor" || name === "zed") return "zeditor --wait"
+  return "nvim"
+}
+
+function awgEditCommand(target, defaultEditor) {
   if (!target) return null
   var path = String(target.confFile || "")
   var userFile = target.configRead === true && path.indexOf("/") === 0
@@ -410,5 +426,5 @@ function awgEditCommand(target) {
     if (!/^[a-zA-Z0-9_=+.-]{1,15}$/.test(name)) return null
     path = AWG_SYSTEM_PROFILE_DIR + "/" + name + ".conf"
   }
-  return { argv: ["sudoedit", path], terminal: true }
+  return { argv: ["env", "SUDO_EDITOR=" + awgSudoEditor(defaultEditor), "sudoedit", path], terminal: true }
 }
